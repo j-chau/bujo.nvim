@@ -12,6 +12,9 @@ local subcommands = {
   today = function()
     require("bujo").today()
   end,
+  spread = function()
+    require("bujo").spread()
+  end,
   open = function(args)
     require("bujo").open(args[1])
   end,
