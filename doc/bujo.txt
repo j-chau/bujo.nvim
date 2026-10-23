@@ -1,0 +1,186 @@
+*bujo.txt*  A bullet journal for Neovim
+
+==============================================================================
+CONTENTS                                                       *bujo-contents*
+
+  1. Introduction ........................................ |bujo-introduction|
+  2. Commands ............................................ |bujo-commands|
+  3. Views ............................................... |bujo-views|
+  4. Keymaps ............................................. |bujo-keymaps|
+  5. File format ......................................... |bujo-format|
+  6. Configuration ....................................... |bujo-config|
+  7. Highlights .......................................... |bujo-highlights|
+  8. Lua API ............................................. |bujo-api|
+
+==============================================================================
+1. INTRODUCTION                                            *bujo-introduction*
+
+bujo.nvim keeps a bullet journal in plain text files, one per day, and shows
+it in a floating window, a two-page spread, or a side panel. Requires Neovim
+0.11 or later.
+
+Calling |bujo.setup()| is optional; call it only to change the defaults.
+
+==============================================================================
+2. COMMANDS                                                    *bujo-commands*
+
+:Bujo [today]                                                          *:Bujo*
+    Open today in a floating window.
+
+:Bujo spread                                                    *:Bujo-spread*
+    Open the previous day and today side by side.
+
+:Bujo side                                                        *:Bujo-side*
+    Toggle the side panel.
+
+:Bujo open [{date}]                                               *:Bujo-open*
+    Edit the raw file for {date} (YYYY-MM-DD), or for today.
+
+==============================================================================
+3. VIEWS                                                          *bujo-views*
+
+Today ~
+    Today's entries, with the cursor on the newest one.
+
+Spread ~
+    The latest earlier day with a file on the left (or the calendar day
+    before, if there is none) and today on the right. Below
+    `float.min_spread_width` columns the pages stack vertically. Closing
+    either page closes both.
+
+Side panel ~
+    A split on the right showing today and the last `side_days` - 1 earlier
+    days that have a file, oldest at the top, scrolled to the bottom. Above
+    them it lists open tasks from older days, going back
+    `side_lookback_days` days. A task there disappears once it is
+    completed, cancelled or migrated.
+
+Views are read-only; every change goes through a keymap. Changes in one view
+show up in every open view. Days with no entries show "no entries".
+
+==============================================================================
+4. KEYMAPS                                                      *bujo-keymaps*
+
+These apply inside views and can be changed with `keymaps` in
+|bujo-config|.
+
+    x           Complete the task under the cursor.
+    c           Cancel the task or event under the cursor.
+    m           Migrate the task under the cursor. A task from today is
+                added to tomorrow; a task from an earlier day is added to
+                today. The original becomes `›`.
+    r           Reopen the entry under the cursor (undo complete, cancel or
+                migrate).
+    t           Add a task to today.
+    n           Add a note to today.
+    e           Add an event to today.
+    E           Add a future event to today.
+    a           Choose an entry type, then add it to today.
+    gf          Open the file of the day under the cursor. Floats close
+                first; the side panel stays open.
+    <Tab>       Switch pages in the spread.
+    q, <Esc>    Close the view.
+
+New entries always go to today, whichever page or day the cursor is on.
+
+==============================================================================
+5. FILE FORMAT                                                   *bujo-format*
+
+Each day is a file at `<data_dir>/YYYY/YYYY-MM-DD.md`, one entry per line:
+
+    • text      task
+    × text      completed task
+    › text      migrated task
+    – text      note
+    ▽ text      event today
+    ▷ text      future event
+    ~• text     cancelled task (also `~▽` and `~▷` for events)
+
+When reading a file:
+- `* text` and a missing space after the glyph (`•text`) are read as
+  `• text`.
+- Entries with no text are dropped.
+- Any other line is kept as it is and shown dimmed, with no actions.
+
+Files are written with LF line endings, through a temp file and a rename.
+
+==============================================================================
+6. CONFIGURATION                                                 *bujo-config*
+
+                                                                *bujo.setup()*
+Defaults: >lua
+    require("bujo").setup({
+      data_dir = vim.fn.stdpath("data") .. "/bujo",
+      side_days = 7,
+      side_lookback_days = 30,
+      side_width = 50,
+      float = {
+        width = 60,
+        height = 0.7,
+        border = "rounded",
+        min_spread_width = 80,
+      },
+      keymaps = {
+        complete = "x",
+        cancel = "c",
+        migrate = "m",
+        reopen = "r",
+        add = "a",
+        add_task = "t",
+        add_note = "n",
+        add_event = "e",
+        add_future = "E",
+        open_file = "gf",
+        switch_page = "<Tab>",
+        close = { "q", "<Esc>" },
+      },
+    })
+<
+data_dir            Where day files are stored.
+side_days           Days with a file shown in full in the side panel,
+                    including today.
+side_lookback_days  How many days back the side panel lists open tasks.
+                    0, or anything other than a positive integer, lists
+                    none.
+side_width          Width of the side panel.
+float.width         Width of the today float and of each spread page.
+float.height        Height as a fraction of the editor height.
+float.border        Border of floating windows, see 'winborder'.
+float.min_spread_width
+                    Below this many columns the spread stacks its pages.
+
+==============================================================================
+7. HIGHLIGHTS                                                *bujo-highlights*
+
+    BujoHeader      Day headers. Links to |hl-Title|.
+    BujoRule        The dashes in day headers. Links to |hl-NonText|.
+    BujoGlyph       Glyphs of open entries. Links to |hl-Special|.
+    BujoDone        Completed and migrated tasks. Links to |hl-Comment|.
+    BujoCancelled   Cancelled entries. |hl-Comment| colours with
+                    strikethrough.
+    BujoRaw         Lines that aren't entries. Links to |hl-Comment|.
+    BujoEmpty       The "no entries" placeholder. Links to |hl-Comment|.
+
+All groups are defaults, so a colorscheme or config can override them.
+Strikethrough needs terminal support; override `BujoCancelled` if yours lacks
+it.
+
+Some fonts draw `•`, `▽` and `▷` with ambiguous width. If entries look
+misaligned, try another font or set 'ambiwidth' to "single".
+
+==============================================================================
+8. LUA API                                                          *bujo-api*
+
+require("bujo").today()                                         *bujo.today()*
+    Same as |:Bujo|.
+
+require("bujo").spread()                                       *bujo.spread()*
+    Same as |:Bujo-spread|.
+
+require("bujo").side()                                           *bujo.side()*
+    Same as |:Bujo-side|.
+
+require("bujo").open({date})                                     *bujo.open()*
+    Same as |:Bujo-open|.
+
+ vim:tw=78:ts=8:ft=help:norl:
