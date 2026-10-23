@@ -4,12 +4,11 @@ local M = {}
 M.defaults = {
   -- Day files are stored at <data_dir>/YYYY/YYYY-MM-DD.md
   data_dir = vim.fn.stdpath("data") .. "/bujo",
-  -- Number of days shown in full in the side panel, including today.
   side_days = 7,
+  side_lookback_days = 30,
   side_width = 50,
   float = {
     width = 60,
-    -- Fraction of the editor height.
     height = 0.7,
     border = "rounded",
     -- Below this many columns the spread stacks yesterday above today.

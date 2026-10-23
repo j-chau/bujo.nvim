@@ -15,6 +15,9 @@ local subcommands = {
   spread = function()
     require("bujo").spread()
   end,
+  side = function()
+    require("bujo").side()
+  end,
   open = function(args)
     require("bujo").open(args[1])
   end,

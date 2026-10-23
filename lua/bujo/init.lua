@@ -13,6 +13,10 @@ function M.spread()
   require("bujo.ui.float").open_spread()
 end
 
+function M.side()
+  require("bujo.ui.side").toggle()
+end
+
 -- Opens a day's raw file for editing.
 ---@param iso? string defaults to today
 function M.open(iso)

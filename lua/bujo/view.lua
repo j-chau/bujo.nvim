@@ -11,6 +11,7 @@ local M = {}
 ---@field buf integer
 ---@field sections fun(): bujo.Section[]
 ---@field origin_win? integer window to open raw day files in
+---@field persistent? boolean
 ---@field close fun()
 ---@field rendered? bujo.Rendered
 
@@ -129,7 +130,8 @@ function M.add_any()
 end
 
 -- Opens the raw file of the day under the cursor in the window the view was
--- opened from, closing the view.
+-- opened from, closing the view. Persistent views stay open and use the
+-- previous window instead, or a new split if there is none.
 ---@param view bujo.View
 function M.open_file(view)
   local info = M.current(view)
@@ -137,10 +139,17 @@ function M.open_file(view)
     return
   end
   local path = store.path_for(info.day)
-  local origin = view.origin_win
-  view.close()
-  if origin and vim.api.nvim_win_is_valid(origin) then
-    vim.api.nvim_set_current_win(origin)
+  if view.persistent then
+    vim.cmd("wincmd p")
+    if vim.api.nvim_get_current_buf() == view.buf then
+      vim.cmd("leftabove vsplit")
+    end
+  else
+    local origin = view.origin_win
+    view.close()
+    if origin and vim.api.nvim_win_is_valid(origin) then
+      vim.api.nvim_set_current_win(origin)
+    end
   end
   vim.cmd.edit(vim.fn.fnameescape(path))
 end
@@ -197,6 +206,7 @@ end
 ---@field name string buffer name
 ---@field sections fun(): bujo.Section[]
 ---@field origin_win? integer
+---@field persistent? boolean keep the view open when opening a day file
 ---@field close? fun(view: bujo.View) defaults to closing the view's windows
 
 ---@param opts bujo.ViewOpts
@@ -215,6 +225,7 @@ function M.create(opts)
     buf = buf,
     sections = opts.sections,
     origin_win = opts.origin_win,
+    persistent = opts.persistent,
     close = function()
       if opts.close then
         return opts.close(view)
